@@ -1,0 +1,19 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Build artifacts
+*.exe
+server
+main
+serverCmd
+tmp_server*
+
+# Test / coverage
+*.test
+*.out
+coverage.out
+
+# Local uploads
+uploads/

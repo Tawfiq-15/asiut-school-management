@@ -12,6 +12,9 @@ backend/main
 backend/serverCmd
 backend/tmp_server*
 backend/uploads/
+backend/bin/
+backend/server.log
+backend/server.err
 
 # Go
 *.test
@@ -25,8 +28,14 @@ frontend/build/
 frontend/.turbo/
 *.tsbuildinfo
 
+# E2E / test artifacts
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+
 # Logs & scratch
 *.log
+*.err
 *_log.txt
 error_*.html
 error_output*.txt

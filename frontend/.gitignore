@@ -10,8 +10,11 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
+# testing / e2e artifacts
 /coverage
+/test-results
+/playwright-report
+/blob-report
 
 # next.js
 /.next/
@@ -24,13 +27,17 @@
 .DS_Store
 *.pem
 
-# debug
+# debug / runtime logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+dev.log
+dev.err
+dev2.log
+dev2.err
 
-# env files (can opt-in for committing if needed)
+# env files
 .env*
 
 # vercel

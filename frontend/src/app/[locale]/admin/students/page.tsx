@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Search, Pencil, Trash2, GraduationCap } from "lucide-react";
 import { toast } from "sonner";
@@ -98,11 +98,10 @@ export default function StudentsPage() {
     },
   ];
 
-  const handleSearch = (v: string) => {
-    setSearch(v);
-    clearTimeout((window as any)._searchTimer);
-    (window as any)._searchTimer = setTimeout(() => setDebouncedSearch(v), 400);
-  };
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(t);
+  }, [search]);
 
   return (
     <DashboardLayout role="admin">
@@ -122,7 +121,7 @@ export default function StudentsPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)]" />
           <input
             value={search}
-            onChange={(e) => handleSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder={t("searchStudents")}
             className="form-input pl-9"
           />

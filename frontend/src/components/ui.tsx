@@ -157,7 +157,7 @@ export const EmptyState = memo(function EmptyState({ icon: Icon, title, descript
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <div className="w-16 h-16 rounded-2xl bg-[var(--color-surface-3)] dark:bg-[var(--color-dark-surface-3)] border border-[var(--color-border)] dark:border-[var(--color-dark-border)] flex items-center justify-center mb-4">
-        <Icon className="w-8 h-8 text-[var(--color-text-muted)] dark:text-[var(--color-dark-muted)]" />
+        <Icon className="w-6 h-6 text-[var(--color-text-muted)] dark:text-[var(--color-dark-muted)]" />
       </div>
       <h3 className="text-base font-semibold text-[var(--color-text-base)] dark:text-[var(--color-dark-text)]">{title}</h3>
       {description && <p className="mt-1.5 text-sm text-[var(--color-text-muted)] max-w-sm">{description}</p>}

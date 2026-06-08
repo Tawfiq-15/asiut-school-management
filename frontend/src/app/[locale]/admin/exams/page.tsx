@@ -1,9 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, BookMarked, ClipboardList, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, BookMarked, ClipboardList, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
-import { DashboardLayout, PageHeader, DataTable, Modal } from "@/components/ui";
+import { DashboardLayout, PageHeader, DataTable, Modal, StatCard } from "@/components/ui";
 import { formatDate, gradeLetterFromPercent } from "@/lib/utils";
 import api from "@/lib/api";
 import { useTranslations } from "next-intl";
@@ -14,6 +14,9 @@ export default function ExamsPage() {
   const [showModal, setShowModal] = useState(false);
   const [selected, setSelected] = useState<any>(null);
   const [resultsExam, setResultsExam] = useState<any>(null);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
 
   const { data: exams = [], isLoading } = useQuery({
     queryKey: ["exams-admin"],
@@ -22,7 +25,17 @@ export default function ExamsPage() {
 
   const del = useMutation({
     mutationFn: (id: string) => api.delete(`/teacher/exams/${id}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["exams-admin"] }); toast.success(t("examDeleted")); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["exams-admin"] }); toast.success(t("examDeleted")); setDeleteTarget(null); },
+  });
+
+  const examTypes = [...new Set((exams as any[]).map((e: any) => e.exam_type).filter(Boolean))];
+  const upcoming = (exams as any[]).filter((e: any) => new Date(e.date) > new Date()).length;
+  const past = (exams as any[]).length - upcoming;
+
+  const filtered = (exams as any[]).filter((e: any) => {
+    if (typeFilter && e.exam_type !== typeFilter) return false;
+    if (search) { const q = search.toLowerCase(); return e.title?.toLowerCase().includes(q) || e.subject?.name?.toLowerCase().includes(q); }
+    return true;
   });
 
   const columns = [
@@ -50,7 +63,7 @@ export default function ExamsPage() {
           <ClipboardList className="w-4 h-4" />
         </button>
         <button onClick={() => { setSelected(r); setShowModal(true); }} className="p-1.5 rounded-lg hover:bg-[var(--color-surface-2)] text-[var(--color-text-muted)] hover:text-blue-600"><Pencil className="w-4 h-4"/></button>
-        <button onClick={() => { if(confirm(t("deleteConfirm"))) del.mutate(r.id); }} className="p-1.5 rounded-lg hover:bg-red-50 text-[var(--color-text-muted)] hover:text-red-500"><Trash2 className="w-4 h-4"/></button>
+        <button onClick={() => setDeleteTarget(r)} className="p-1.5 rounded-lg hover:bg-red-50 text-[var(--color-text-muted)] hover:text-red-500"><Trash2 className="w-4 h-4"/></button>
       </div>
     )},
   ];
@@ -60,8 +73,26 @@ export default function ExamsPage() {
       <PageHeader title={t("examsTitle")} subtitle={t("examsSubtitle")} actions={
         <button onClick={() => { setSelected(null); setShowModal(true); }} className="btn-primary"><Plus className="w-4 h-4" /> {t("addExam")}</button>
       }/>
+
+      <div className="grid grid-cols-3 gap-4 mb-5">
+        <StatCard title="Total Exams" value={(exams as any[]).length} icon={BookMarked} color="blue"   />
+        <StatCard title="Upcoming"    value={upcoming}               icon={BookMarked} color="green"  />
+        <StatCard title="Past"        value={past}                   icon={BookMarked} color="purple" />
+      </div>
+
+      <div className="card p-4 mb-4 flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)]" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search exams..." className="form-input pl-9 w-full" />
+        </div>
+        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="form-input max-w-xs">
+          <option value="">All Types</option>
+          {examTypes.map((tp: any) => <option key={tp} value={tp}>{tp}</option>)}
+        </select>
+      </div>
+
       <div className="card overflow-hidden">
-        <DataTable columns={columns} data={exams} loading={isLoading} emptyMessage={t("noExams")} />
+        <DataTable columns={columns} data={filtered} loading={isLoading} emptyMessage={t("noExams")} />
       </div>
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={selected ? t("edit") : t("addExam")}>
@@ -71,6 +102,18 @@ export default function ExamsPage() {
       <Modal open={!!resultsExam} onClose={() => setResultsExam(null)} title={`${t("enterResults")} — ${resultsExam?.title ?? ""}`} maxWidth="max-w-2xl">
         {resultsExam && <ExamResultsForm exam={resultsExam} onSuccess={() => setResultsExam(null)} />}
       </Modal>
+
+      {deleteTarget && (
+        <Modal open={true} onClose={() => setDeleteTarget(null)} title={t("deleteConfirm")}>
+          <div className="space-y-4">
+            <p className="text-sm text-[var(--color-text-muted)]">Delete exam <span className="font-semibold dark:text-[var(--color-dark-text)]">{deleteTarget.title}</span>? All results will be lost.</p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setDeleteTarget(null)} className="btn-secondary">{t("cancel")}</button>
+              <button onClick={() => del.mutate(deleteTarget.id)} disabled={del.isPending} className="px-4 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-700 text-white">{t("delete")}</button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </DashboardLayout>
   );
 }

@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { DashboardLayout, PageHeader, DataTable } from "@/components/ui";
-import { Check, X, Clock, Loader2 } from "lucide-react";
+import { DashboardLayout, PageHeader, DataTable, StatCard } from "@/components/ui";
+import { Check, X, Clock, Loader2, CheckCircle2, XCircle, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { useTranslations } from "next-intl";
@@ -93,6 +93,11 @@ export default function TeacherAttendancePage() {
 
   const isLoading = sLoading || stLoading;
 
+  const presentCount = (students as any[]).filter((s: any) => s.status === "present").length;
+  const absentCount  = (students as any[]).filter((s: any) => s.status === "absent").length;
+  const lateCount    = (students as any[]).filter((s: any) => s.status === "late").length;
+  const unmarked     = (students as any[]).filter((s: any) => !s.status).length;
+
   return (
     <DashboardLayout role="teacher">
       <PageHeader 
@@ -119,6 +124,15 @@ export default function TeacherAttendancePage() {
           ) : null
         }
       />
+
+      {subjectId && students.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          <StatCard title={t("present")} value={presentCount} icon={CheckCircle2} color="green"  />
+          <StatCard title={t("absent")}  value={absentCount}  icon={XCircle}      color="red"    />
+          <StatCard title={t("late")}    value={lateCount}    icon={Clock}        color="orange" />
+          <StatCard title="Unmarked"     value={unmarked}      icon={UserCheck}    color="blue"   />
+        </div>
+      )}
 
       <div className="card p-4 mb-6 flex gap-4 bg-white dark:bg-zinc-900 shadow-sm border border-zinc-200 dark:border-zinc-800 rounded-xl">
         <div className="flex-1">

@@ -264,6 +264,7 @@ type EventHandler struct{ svc *usecase.EventService }
 func NewEventHandler(svc *usecase.EventService) *EventHandler { return &EventHandler{svc: svc} }
 
 func (h *EventHandler) List(c *gin.Context) {
+	c.Header("Cache-Control", "public, max-age=120")
 	publicOnly := middleware.GetUserID(c) == ""
 	events, err := h.svc.List(c.Request.Context(), publicOnly)
 	respondOrError(c, events, err)

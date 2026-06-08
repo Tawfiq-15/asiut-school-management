@@ -25,6 +25,7 @@ export default function SchedulesPage() {
   const [selectedGrade, setSelectedGrade] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [selected, setSelected] = useState<any>(null);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
 
   const { data: grades = [] } = useQuery({ queryKey: ["grades"], queryFn: () => api.get("/admin/grades").then((r: any) => r.data?.data ?? r.data?.records ?? r.data ?? []) });
   const { data: schedules = [], isLoading } = useQuery({
@@ -34,7 +35,7 @@ export default function SchedulesPage() {
 
   const del = useMutation({
     mutationFn: (id: string) => api.delete(`/admin/schedules/${id}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["schedules"] }); toast.success(t("scheduleDeleted")); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["schedules"] }); toast.success(t("scheduleDeleted")); setDeleteTarget(null); },
   });
 
   const byDay: Record<number, any[]> = {};
@@ -70,7 +71,7 @@ export default function SchedulesPage() {
                   {s.room && <div className="text-xs text-[var(--color-text-muted)]">Room {s.room}</div>}
                   <div className="absolute top-2 right-2 hidden group-hover:flex gap-1">
                     <button onClick={() => { setSelected(s); setShowModal(true); }} className="p-1 rounded bg-white/80 dark:bg-[var(--color-surface-2)] text-blue-600 dark:text-blue-400"><Pencil className="w-3 h-3"/></button>
-                    <button onClick={() => { if(confirm(t("deleteConfirm"))) del.mutate(s.id); }} className="p-1 rounded bg-white/80 dark:bg-[var(--color-surface-2)] text-red-500 dark:text-red-400"><Trash2 className="w-3 h-3"/></button>
+                    <button onClick={() => setDeleteTarget(s)} className="p-1 rounded bg-white/80 dark:bg-[var(--color-surface-2)] text-red-500 dark:text-red-400"><Trash2 className="w-3 h-3"/></button>
                   </div>
                 </motion.div>
               ))}
@@ -83,6 +84,18 @@ export default function SchedulesPage() {
       <Modal open={showModal} onClose={() => setShowModal(false)} title={selected ? t("edit") : t("addSchedule")}>
         <ScheduleForm existing={selected} grades={grades} onSuccess={() => { setShowModal(false); qc.invalidateQueries({ queryKey: ["schedules"] }); }} />
       </Modal>
+
+      {deleteTarget && (
+        <Modal open={true} onClose={() => setDeleteTarget(null)} title={t("deleteConfirm")}>
+          <div className="space-y-4">
+            <p className="text-sm text-[var(--color-text-muted)]">Delete the <span className="font-semibold dark:text-[var(--color-dark-text)]">{deleteTarget.subject?.name}</span> period on <span className="font-semibold dark:text-[var(--color-dark-text)]">{DAYS[deleteTarget.day_of_week]}</span>?</p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setDeleteTarget(null)} className="btn-secondary">{t("cancel")}</button>
+              <button onClick={() => { del.mutate(deleteTarget.id); setDeleteTarget(null); }} className="px-4 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-700 text-white">{t("delete")}</button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </DashboardLayout>
   );
 }

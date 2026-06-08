@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, BookOpen, Pencil, Trash2, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { DashboardLayout, PageHeader, DataTable, Modal } from "@/components/ui";
+import { DashboardLayout, PageHeader, DataTable, Modal, StatCard } from "@/components/ui";
 import { formatDate } from "@/lib/utils";
 import api from "@/lib/api";
 import { useTranslations } from "next-intl";
@@ -16,6 +16,7 @@ export default function LibraryPage() {
   const [showModal, setShowModal] = useState(false);
   const [selected, setSelected] = useState<any>(null);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
 
   const { data: books = [], isLoading: bLoading } = useQuery({
     queryKey: ["books", search],
@@ -29,7 +30,7 @@ export default function LibraryPage() {
 
   const del = useMutation({
     mutationFn: (id: string) => api.delete(`/admin/library/books/${id}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["books"] }); toast.success(t("delete")); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["books"] }); toast.success(t("delete")); setDeleteTarget(null); },
   });
 
   const returnBook = useMutation({
@@ -50,7 +51,7 @@ export default function LibraryPage() {
     { key: "actions",  label: "", render: (r: any) => (
       <div className="flex gap-1">
         <button onClick={() => { setSelected(r); setShowModal(true); }} className="p-1.5 rounded-lg hover:bg-[var(--color-surface-2)] text-[var(--color-text-muted)] hover:text-blue-600"><Pencil className="w-4 h-4"/></button>
-        <button onClick={() => { if(confirm(t("deleteConfirm"))) del.mutate(r.id); }} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 text-[var(--color-text-muted)] hover:text-red-500 dark:hover:text-red-400"><Trash2 className="w-4 h-4"/></button>
+        <button onClick={() => setDeleteTarget(r)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40 text-[var(--color-text-muted)] hover:text-red-500 dark:hover:text-red-400"><Trash2 className="w-4 h-4"/></button>
       </div>
     )},
   ];
@@ -81,6 +82,22 @@ export default function LibraryPage() {
             : <button onClick={() => setShowCheckout(true)} className="btn-primary"><Plus className="w-4 h-4" /> {t("checkoutBook")}</button>
         }
       />
+
+      {/* Stats */}
+      {(() => {
+        const bookList = books as any[];
+        const loanList = loans as any[];
+        const totalBooks = bookList.reduce((s, b) => s + (b.total_copies ?? 0), 0);
+        const available  = bookList.reduce((s, b) => s + (b.available ?? 0), 0);
+        const activeLoans = loanList.filter((l: any) => l.status === "active").length;
+        return (
+          <div className="grid grid-cols-3 gap-4 mb-5">
+            <StatCard title="Total Titles"  value={bookList.length} icon={BookOpen} color="blue"   />
+            <StatCard title="Available"     value={available}       icon={BookOpen} color="green"  />
+            <StatCard title="Active Loans"  value={activeLoans}     icon={BookOpen} color="orange" />
+          </div>
+        );
+      })()}
 
       <div className="flex gap-3 mb-4">
         <button onClick={() => setTab("books")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${tab === "books" ? "btn-primary" : "btn-secondary"}`}>
@@ -117,7 +134,7 @@ export default function LibraryPage() {
 
       <Modal open={showCheckout} onClose={() => setShowCheckout(false)} title={t("checkoutBook")}>
         <CheckoutForm
-          books={books.filter((b: any) => b.available > 0)}
+          books={(books as any[]).filter((b: any) => b.available > 0)}
           onSuccess={() => {
             setShowCheckout(false);
             qc.invalidateQueries({ queryKey: ["loans"] });
@@ -125,6 +142,18 @@ export default function LibraryPage() {
           }}
         />
       </Modal>
+
+      {deleteTarget && (
+        <Modal open={true} onClose={() => setDeleteTarget(null)} title={t("deleteConfirm")}>
+          <div className="space-y-4">
+            <p className="text-sm text-[var(--color-text-muted)]">Delete book <span className="font-semibold dark:text-[var(--color-dark-text)]">"{deleteTarget.title}"</span>? Active loans will be affected.</p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setDeleteTarget(null)} className="btn-secondary">{t("cancel")}</button>
+              <button onClick={() => del.mutate(deleteTarget.id)} disabled={del.isPending} className="px-4 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-700 text-white">{t("delete")}</button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </DashboardLayout>
   );
 }

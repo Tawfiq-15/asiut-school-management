@@ -392,7 +392,9 @@ func (r *StudentRepository) ListByTeacherGrades(ctx context.Context, teacherUser
 		countQuery += " AND s.grade_id = $2"
 		countArgs = append(countArgs, p.GradeID)
 	}
-	r.db.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total)
+	if err := r.db.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
 
 	return students, total, nil
 }
@@ -434,10 +436,12 @@ func (r *TeacherRepository) List(ctx context.Context, p domain.PaginationParams)
 	}
 
 	var total int64
-	r.db.QueryRowContext(ctx, `
+	if err := r.db.QueryRowContext(ctx, `
 		SELECT COUNT(*) FROM teachers t JOIN users u ON u.id = t.user_id
 		WHERE t.deleted_at IS NULL AND ($1 = '' OR u.first_name ILIKE $1 OR u.last_name ILIKE $1 OR t.employee_no ILIKE $1)
-	`, "%"+p.Search+"%").Scan(&total)
+	`, "%"+p.Search+"%").Scan(&total); err != nil {
+		return nil, 0, err
+	}
 
 	return teachers, total, nil
 }
@@ -654,5 +658,33 @@ func (r *MonthlyMarkRepository) Upsert(ctx context.Context, m *domain.MonthlyMar
 			practical = EXCLUDED.practical,
 			updated_at = NOW()
 	`, m.StudentID, m.SubjectID, m.Month, m.Activity, m.Behavior, m.Project, m.Midterm, m.Final, m.Attendance, m.Practical)
+	return err
+}
+
+func (r *MonthlyMarkRepository) BulkUpsert(ctx context.Context, marks []*domain.MonthlyMark) error {
+	if len(marks) == 0 {
+		return nil
+	}
+	// Build a single multi-row INSERT … ON CONFLICT upsert.
+	query := `INSERT INTO monthly_marks
+		(student_id, subject_id, month, activity, behavior, project, midterm, final, attendance, practical)
+		VALUES `
+	args := make([]interface{}, 0, len(marks)*10)
+	for i, m := range marks {
+		base := i * 10
+		if i > 0 {
+			query += ","
+		}
+		query += fmt.Sprintf("($%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d)",
+			base+1, base+2, base+3, base+4, base+5, base+6, base+7, base+8, base+9, base+10)
+		args = append(args, m.StudentID, m.SubjectID, m.Month,
+			m.Activity, m.Behavior, m.Project, m.Midterm, m.Final, m.Attendance, m.Practical)
+	}
+	query += ` ON CONFLICT (student_id, subject_id, month) DO UPDATE SET
+		activity = EXCLUDED.activity, behavior = EXCLUDED.behavior,
+		project = EXCLUDED.project, midterm = EXCLUDED.midterm,
+		final = EXCLUDED.final, attendance = EXCLUDED.attendance,
+		practical = EXCLUDED.practical, updated_at = NOW()`
+	_, err := r.db.ExecContext(ctx, query, args...)
 	return err
 }

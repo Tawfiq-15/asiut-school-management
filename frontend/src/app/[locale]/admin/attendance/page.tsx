@@ -1,9 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, XCircle, Clock, Plus, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Plus, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
-import { DashboardLayout, PageHeader, DataTable, Modal } from "@/components/ui";
+import { DashboardLayout, PageHeader, DataTable, Modal, StatCard } from "@/components/ui";
 import { formatDate } from "@/lib/utils";
 import api from "@/lib/api";
 import { useTranslations } from "next-intl";
@@ -59,19 +59,9 @@ export default function AttendancePage() {
       />
 
       <div className="grid grid-cols-3 gap-4 mb-6">
-        {[
-          { label: t("present"), value: present, icon: CheckCircle2, cls: "text-green-600 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-950/30 dark:border-green-800/40" },
-          { label: t("absent"),  value: absent,  icon: XCircle,      cls: "text-red-500 bg-red-50 border-red-200 dark:text-red-400 dark:bg-red-950/30 dark:border-red-800/40" },
-          { label: t("late"),    value: late,    icon: Clock,        cls: "text-yellow-600 bg-yellow-50 border-yellow-200 dark:text-yellow-400 dark:bg-yellow-950/30 dark:border-yellow-800/40" },
-        ].map(s => (
-          <div key={s.label} className={`card p-4 flex items-center gap-3 border ${s.cls}`}>
-            <s.icon className="w-5 h-5" />
-            <div>
-              <div className="text-xl font-bold">{s.value}</div>
-              <div className="text-xs">{s.label}</div>
-            </div>
-          </div>
-        ))}
+        <StatCard title={t("present")} value={present} icon={CheckCircle2} color="green"  />
+        <StatCard title={t("absent")}  value={absent}  icon={XCircle}      color="red"    />
+        <StatCard title={t("late")}    value={late}    icon={Clock}        color="orange" />
       </div>
 
       <div className="card p-4 mb-4 flex flex-wrap gap-3 items-center">

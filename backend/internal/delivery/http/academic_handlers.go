@@ -21,6 +21,7 @@ type GradeHandler struct{ svc *usecase.GradeService }
 func NewGradeHandler(svc *usecase.GradeService) *GradeHandler { return &GradeHandler{svc: svc} }
 
 func (h *GradeHandler) List(c *gin.Context) {
+	c.Header("Cache-Control", "public, max-age=300")
 	grades, err := h.svc.List(c.Request.Context())
 	respondOrError(c, grades, err)
 }
@@ -74,6 +75,7 @@ type SubjectHandler struct{ svc *usecase.SubjectService }
 func NewSubjectHandler(svc *usecase.SubjectService) *SubjectHandler { return &SubjectHandler{svc: svc} }
 
 func (h *SubjectHandler) List(c *gin.Context) {
+	c.Header("Cache-Control", "public, max-age=300")
 	subjects, err := h.svc.List(c.Request.Context())
 	respondOrError(c, subjects, err)
 }
@@ -210,7 +212,16 @@ func (h *AttendanceHandler) BulkMark(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	teacherID := middleware.GetUserID(c)
+
+	// Resolve the caller's teacher profile ID (nil for admins who have no teacher row).
+	var markedBy *string
+	if middleware.GetUserRole(c) == "teacher" {
+		userID := middleware.GetUserID(c)
+		if tid, err := h.svc.TeacherIDFromUserID(c.Request.Context(), userID); err == nil && tid != "" {
+			markedBy = &tid
+		}
+	}
+
 	var records []*domain.Attendance
 	for _, r := range input.Records {
 		date, _ := time.Parse("2006-01-02", r.Date)
@@ -227,7 +238,7 @@ func (h *AttendanceHandler) BulkMark(c *gin.Context) {
 			SubjectID: subID,
 			Date:      date,
 			Status:    domain.AttendanceStatus(r.Status),
-			MarkedBy:  &teacherID,
+			MarkedBy:  markedBy,
 			Notes:     notes,
 		})
 	}
@@ -270,7 +281,15 @@ func (h *AttendanceHandler) ForParent(c *gin.Context) {
 		return
 	}
 	records, err := h.svc.ByStudent(c.Request.Context(), studentID, 100)
-	respondOrError(c, records, err)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	present, absent, late, _ := h.svc.Summary(c.Request.Context(), studentID)
+	c.JSON(http.StatusOK, gin.H{
+		"records": records,
+		"summary": gin.H{"present": present, "absent": absent, "late": late},
+	})
 }
 
 func (h *AttendanceHandler) ListAll(c *gin.Context) {

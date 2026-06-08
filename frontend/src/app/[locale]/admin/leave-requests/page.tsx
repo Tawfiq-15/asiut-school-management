@@ -3,11 +3,10 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, XCircle, Clock, ClipboardCheck } from "lucide-react";
 import { toast } from "sonner";
-import { DashboardLayout, PageHeader, DataTable } from "@/components/ui";
+import { DashboardLayout, PageHeader, DataTable, StatCard } from "@/components/ui";
 import { formatDate } from "@/lib/utils";
 import api from "@/lib/api";
 import { useTranslations } from "next-intl";
-import { motion } from "framer-motion";
 
 const STATUSES = ["all", "pending", "approved", "rejected"] as const;
 
@@ -109,25 +108,9 @@ export default function LeaveRequestsPage() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        {[
-          { label: t("pending"),  value: pending,  icon: Clock,         cls: "text-yellow-600 bg-yellow-50 border-yellow-200 dark:text-yellow-400 dark:bg-yellow-950/30 dark:border-yellow-800/40" },
-          { label: t("approved"), value: approved, icon: CheckCircle2,  cls: "text-green-600 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-950/30 dark:border-green-800/40" },
-          { label: t("rejected"), value: rejected, icon: XCircle,       cls: "text-red-500 bg-red-50 border-red-200 dark:text-red-400 dark:bg-red-950/30 dark:border-red-800/40" },
-        ].map((s, i) => (
-          <motion.div
-            key={s.label}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            className={`card p-4 flex items-center gap-3 border ${s.cls}`}
-          >
-            <s.icon className="w-5 h-5" />
-            <div>
-              <div className="text-xl font-bold">{s.value}</div>
-              <div className="text-xs capitalize">{s.label}</div>
-            </div>
-          </motion.div>
-        ))}
+        <StatCard title={t("pending")}  value={pending}  icon={Clock}        color="orange" />
+        <StatCard title={t("approved")} value={approved} icon={CheckCircle2} color="green"  />
+        <StatCard title={t("rejected")} value={rejected} icon={XCircle}      color="red"    />
       </div>
 
       {/* Status filter tabs */}

@@ -1,9 +1,9 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, FileText, Send, Users, Loader2, CheckCircle2 } from "lucide-react";
+import { Plus, Pencil, Trash2, FileText, Send, Users, Loader2, CheckCircle2, Search } from "lucide-react";
 import { toast } from "sonner";
-import { DashboardLayout, PageHeader, DataTable, Modal } from "@/components/ui";
+import { DashboardLayout, PageHeader, DataTable, Modal, StatCard } from "@/components/ui";
 import { formatDate } from "@/lib/utils";
 import api from "@/lib/api";
 import { useTranslations } from "next-intl";
@@ -14,6 +14,9 @@ export default function AssignmentsPage() {
   const [showModal, setShowModal] = useState(false);
   const [selected, setSelected] = useState<any>(null);
   const [submissionsAssignment, setSubmissionsAssignment] = useState<any>(null);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
   const { data: assignments = [], isLoading } = useQuery({
     queryKey: ["assignments-admin"],
@@ -22,7 +25,17 @@ export default function AssignmentsPage() {
 
   const del = useMutation({
     mutationFn: (id: string) => api.delete(`/teacher/assignments/${id}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["assignments-admin"] }); toast.success(t("assignmentDeleted")); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["assignments-admin"] }); toast.success(t("assignmentDeleted")); setDeleteTarget(null); },
+  });
+
+  const published = (assignments as any[]).filter((a: any) => a.is_published).length;
+  const drafts = (assignments as any[]).length - published;
+
+  const filtered = (assignments as any[]).filter((a: any) => {
+    if (statusFilter === "published" && !a.is_published) return false;
+    if (statusFilter === "draft" && a.is_published) return false;
+    if (search) { const q = search.toLowerCase(); return a.title?.toLowerCase().includes(q) || a.subject?.name?.toLowerCase().includes(q); }
+    return true;
   });
 
   const toggle = useMutation({
@@ -57,7 +70,7 @@ export default function AssignmentsPage() {
         </button>
         <button onClick={() => toggle.mutate({ id: r.id, published: !r.is_published })} className="p-1.5 rounded-lg hover:bg-[var(--color-surface-2)] text-[var(--color-text-muted)] hover:text-blue-600" title={r.is_published ? t("draft") : t("published")}><Send className="w-4 h-4"/></button>
         <button onClick={() => { setSelected(r); setShowModal(true); }} className="p-1.5 rounded-lg hover:bg-[var(--color-surface-2)] text-[var(--color-text-muted)] hover:text-blue-600"><Pencil className="w-4 h-4"/></button>
-        <button onClick={() => { if(confirm(t("deleteConfirm"))) del.mutate(r.id); }} className="p-1.5 rounded-lg hover:bg-red-50 text-[var(--color-text-muted)] hover:text-red-500"><Trash2 className="w-4 h-4"/></button>
+        <button onClick={() => setDeleteTarget(r)} className="p-1.5 rounded-lg hover:bg-red-50 text-[var(--color-text-muted)] hover:text-red-500"><Trash2 className="w-4 h-4"/></button>
       </div>
     )},
   ];
@@ -67,8 +80,27 @@ export default function AssignmentsPage() {
       <PageHeader title={t("assignmentsTitle")} subtitle={t("assignmentsSubtitle")} actions={
         <button onClick={() => { setSelected(null); setShowModal(true); }} className="btn-primary"><Plus className="w-4 h-4" /> {t("addAssignment")}</button>
       }/>
+
+      <div className="grid grid-cols-3 gap-4 mb-5">
+        <StatCard title="Total"     value={(assignments as any[]).length} icon={FileText} color="blue"   />
+        <StatCard title="Published" value={published}                    icon={Send}     color="green"  />
+        <StatCard title="Drafts"    value={drafts}                       icon={FileText} color="orange" />
+      </div>
+
+      <div className="card p-4 mb-4 flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)]" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search assignments..." className="form-input pl-9 w-full" />
+        </div>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="form-input max-w-xs">
+          <option value="">All Status</option>
+          <option value="published">{t("published")}</option>
+          <option value="draft">{t("draft")}</option>
+        </select>
+      </div>
+
       <div className="card overflow-hidden">
-        <DataTable columns={columns} data={assignments} loading={isLoading} emptyMessage={t("noAssignments")} />
+        <DataTable columns={columns} data={filtered} loading={isLoading} emptyMessage={t("noAssignments")} />
       </div>
 
       <Modal open={showModal} onClose={() => setShowModal(false)} title={selected ? t("editAssignment") : t("addAssignment")}>
@@ -85,6 +117,18 @@ export default function AssignmentsPage() {
           <SubmissionsViewer assignment={submissionsAssignment} />
         )}
       </Modal>
+
+      {deleteTarget && (
+        <Modal open={true} onClose={() => setDeleteTarget(null)} title={t("deleteConfirm")}>
+          <div className="space-y-4">
+            <p className="text-sm text-[var(--color-text-muted)]">Delete assignment <span className="font-semibold dark:text-[var(--color-dark-text)]">{deleteTarget.title}</span>? All submissions will also be deleted.</p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setDeleteTarget(null)} className="btn-secondary">{t("cancel")}</button>
+              <button onClick={() => del.mutate(deleteTarget.id)} disabled={del.isPending} className="px-4 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-700 text-white">{t("delete")}</button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </DashboardLayout>
   );
 }

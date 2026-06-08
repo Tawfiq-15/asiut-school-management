@@ -1,8 +1,8 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
-import { DashboardLayout, PageHeader, DataTable } from "@/components/ui";
+import { DashboardLayout, PageHeader, DataTable, StatCard } from "@/components/ui";
 import { formatDate } from "@/lib/utils";
-import { CheckCircle2, XCircle, Clock, BookOpen } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, TrendingUp } from "lucide-react";
 import api from "@/lib/api";
 import { useTranslations } from "next-intl";
 
@@ -37,34 +37,10 @@ export default function StudentAttendancePage() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="card p-4 flex items-center gap-3 border border-green-200 bg-green-50/50 dark:bg-green-950/20 dark:border-green-800/30">
-          <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-          <div>
-            <div className="text-2xl font-black text-green-700 dark:text-green-400">{summary.present}</div>
-            <div className="text-xs text-green-800 dark:text-green-300">{t("present")}</div>
-          </div>
-        </div>
-        <div className="card p-4 flex items-center gap-3 border border-red-200 bg-red-50/50 dark:bg-red-950/20 dark:border-red-800/30">
-          <XCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" />
-          <div>
-            <div className="text-2xl font-black text-red-600 dark:text-red-400">{summary.absent}</div>
-            <div className="text-xs text-red-700 dark:text-red-300">{t("absent")}</div>
-          </div>
-        </div>
-        <div className="card p-4 flex items-center gap-3 border border-yellow-200 bg-yellow-50/50 dark:bg-yellow-950/20 dark:border-yellow-800/30">
-          <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
-          <div>
-            <div className="text-2xl font-black text-yellow-700 dark:text-yellow-400">{summary.late}</div>
-            <div className="text-xs text-yellow-800 dark:text-yellow-300">{t("late")}</div>
-          </div>
-        </div>
-        <div className="card p-4 flex items-center gap-3 border border-[var(--color-border)] dark:border-[var(--color-dark-border)]">
-          <BookOpen className="w-5 h-5 text-[var(--color-primary-600)] flex-shrink-0" />
-          <div>
-            <div className="text-2xl font-black dark:text-[var(--color-dark-text)]">{rate}%</div>
-            <div className="text-xs text-[var(--color-text-muted)]">{t("attendanceRate") ?? "Attendance Rate"}</div>
-          </div>
-        </div>
+        <StatCard title={t("present")}       value={summary.present} icon={CheckCircle2} color="green"  />
+        <StatCard title={t("absent")}        value={summary.absent}  icon={XCircle}      color="red"    />
+        <StatCard title={t("late")}          value={summary.late}    icon={Clock}        color="orange" />
+        <StatCard title="Attendance Rate"    value={`${rate}%`}      icon={TrendingUp}   color="blue"   />
       </div>
 
       <div className="card overflow-hidden">

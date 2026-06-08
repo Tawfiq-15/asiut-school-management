@@ -19,7 +19,7 @@ export default function StudentDashboardPage() {
   const t = useTranslations("Dashboard.student");
   const { data: attendance, isLoading: isAttendanceLoading } = useQuery({
     queryKey: ["student-attendance"],
-    queryFn: () => api.get("/student/attendance").then((r: any) => r.data?.data ?? r.data?.records ?? r.data ?? []),
+    queryFn: () => api.get("/student/attendance").then((r: any) => r.data),
   });
 
   const { data: grades, isLoading: isGradesLoading } = useQuery({

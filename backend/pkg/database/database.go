@@ -32,10 +32,10 @@ func Connect() (*sql.DB, error) {
 	}
 
 	// Connection pool settings
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(25)
+	db.SetMaxOpenConns(50)
+	db.SetMaxIdleConns(10)
 	db.SetConnMaxLifetime(time.Hour)
-	db.SetConnMaxIdleTime(15 * time.Minute)
+	db.SetConnMaxIdleTime(5 * time.Minute)
 
 	log.Println("✅ Connected to PostgreSQL")
 	return db, nil
@@ -72,6 +72,7 @@ func RunMigrations(db *sql.DB) error {
 		migrationCreateContactMessages,
 		migrationSoftDeleteColumns,
 		migrationUserMustChangePassword,
+		migrationPerformanceIndexes,
 	}
 
 	for _, m := range migrations {
@@ -535,5 +536,14 @@ CREATE INDEX IF NOT EXISTS idx_books_not_deleted    ON books(id)    WHERE delete
 // temporary password so the UI can force a reset on first login.
 const migrationUserMustChangePassword = `
 ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN DEFAULT false;
+`
+
+// migrationPerformanceIndexes adds indexes missing from the initial schema.
+const migrationPerformanceIndexes = `
+CREATE INDEX IF NOT EXISTS idx_assignments_teacher_id        ON assignments(teacher_id);
+CREATE INDEX IF NOT EXISTS idx_schedules_teacher_grade       ON schedules(teacher_id, grade_id);
+CREATE INDEX IF NOT EXISTS idx_monthly_marks_subject_student ON monthly_marks(subject_id, student_id);
+CREATE INDEX IF NOT EXISTS idx_payments_student_status       ON payments(student_id, status);
+CREATE INDEX IF NOT EXISTS idx_book_loans_status_due         ON book_loans(status, due_date);
 `
 

@@ -78,7 +78,7 @@ function ChildCard({ child }: { child: any }) {
   const locale = useLocale();
   const { data: attendance, isLoading } = useQuery({
     queryKey: ["child-attendance", child.id],
-    queryFn: () => api.get(`/parent/children/${child.id}/attendance`).then((r: any) => r.data?.data ?? r.data?.records ?? r.data ?? []),
+    queryFn: () => api.get(`/parent/children/${child.id}/attendance`).then((r: any) => r.data),
   });
 
   if (isLoading) {

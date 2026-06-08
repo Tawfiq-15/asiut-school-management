@@ -36,7 +36,7 @@ func resolveCredential(supplied string) (hash string, generatedPlaintext string,
 		generatedPlaintext = plaintext
 		mustChange = true
 	}
-	h, err := bcrypt.GenerateFromPassword([]byte(plaintext), 12)
+	h, err := bcrypt.GenerateFromPassword([]byte(plaintext), 10)
 	if err != nil {
 		return "", "", false, err
 	}
@@ -105,7 +105,7 @@ func (s *AuthService) Register(ctx context.Context, input RegisterInput) (*domai
 		return nil, errors.New("cannot self-register with this role")
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(input.Password), 12)
+	hash, err := bcrypt.GenerateFromPassword([]byte(input.Password), 10)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func (s *AuthService) ResetPassword(ctx context.Context, token, newPassword stri
 	if user == nil {
 		return errors.New("invalid or expired reset token")
 	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), 12)
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), 10)
 	if err != nil {
 		return err
 	}
@@ -179,7 +179,7 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID, oldPassword, n
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(oldPassword)); err != nil {
 		return errors.New("current password is incorrect")
 	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), 12)
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), 10)
 	if err != nil {
 		return err
 	}
@@ -525,15 +525,14 @@ func (s *MonthlyMarkService) GetMarks(ctx context.Context, subjectID, month stri
 }
 
 func (s *MonthlyMarkService) SaveMarks(ctx context.Context, marks []map[string]interface{}) error {
+	batch := make([]*domain.MonthlyMark, 0, len(marks))
 	for _, mData := range marks {
 		studentID, _ := mData["student_id"].(string)
 		subjectID, _ := mData["subject_id"].(string)
 		month, _ := mData["month"].(string)
-		
 		if studentID == "" || subjectID == "" || month == "" {
-			continue // skip invalid
+			continue
 		}
-
 		activity, _ := mData["activity"].(float64)
 		behavior, _ := mData["behavior"].(float64)
 		project, _ := mData["project"].(float64)
@@ -541,22 +540,11 @@ func (s *MonthlyMarkService) SaveMarks(ctx context.Context, marks []map[string]i
 		final, _ := mData["final"].(float64)
 		attendance, _ := mData["attendance"].(float64)
 		practical, _ := mData["practical"].(float64)
-
-		m := &domain.MonthlyMark{
-			StudentID:  studentID,
-			SubjectID:  subjectID,
-			Month:      month,
-			Activity:   activity,
-			Behavior:   behavior,
-			Project:    project,
-			Midterm:    midterm,
-			Final:      final,
-			Attendance: attendance,
-			Practical:  practical,
-		}
-		if err := s.repo.Upsert(ctx, m); err != nil {
-			return err
-		}
+		batch = append(batch, &domain.MonthlyMark{
+			StudentID: studentID, SubjectID: subjectID, Month: month,
+			Activity: activity, Behavior: behavior, Project: project,
+			Midterm: midterm, Final: final, Attendance: attendance, Practical: practical,
+		})
 	}
-	return nil
+	return s.repo.BulkUpsert(ctx, batch)
 }

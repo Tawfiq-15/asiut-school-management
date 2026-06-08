@@ -14,6 +14,25 @@ const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
   reactStrictMode: true,
 
+  // Tree-shake heavy / barrel libraries so the bundler compiles only the used
+  // members instead of the whole package. Cuts the module graph Turbopack must
+  // process on each cold dev route (and shrinks prod bundles too).
+  experimental: {
+    optimizePackageImports: [
+      "recharts",
+      "framer-motion",
+      "lucide-react",
+      "date-fns",
+      "@tanstack/react-query",
+      "@radix-ui/react-dialog",
+      "@radix-ui/react-dropdown-menu",
+      "@radix-ui/react-select",
+      "@radix-ui/react-tabs",
+      "@radix-ui/react-popover",
+      "@radix-ui/react-tooltip",
+    ],
+  },
+
   images: {
     remotePatterns: [
       { protocol: "http", hostname: "localhost", port: "8080" },

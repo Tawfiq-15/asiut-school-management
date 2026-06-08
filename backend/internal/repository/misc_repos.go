@@ -250,7 +250,9 @@ func (r *PaymentRepository) List(ctx context.Context, p domain.PaginationParams)
 		list = append(list, py)
 	}
 	var total int64
-	r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM payments`).Scan(&total) // payments has no search filter
+	if err := r.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM payments`).Scan(&total); err != nil {
+		return nil, 0, err
+	}
 	return list, total, nil
 }
 

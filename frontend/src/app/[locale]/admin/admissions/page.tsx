@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserCheck, Clock, CheckCircle2, XCircle, Eye, MessageSquare, Send, X, Smartphone, Mail, FileText, User } from "lucide-react";
 import { toast } from "sonner";
-import { DashboardLayout, PageHeader, DataTable } from "@/components/ui";
+import { DashboardLayout, PageHeader, DataTable, StatCard } from "@/components/ui";
 import { formatDate } from "@/lib/utils";
 import api from "@/lib/api";
 import { useTranslations, useLocale } from "next-intl";
@@ -196,19 +196,15 @@ export default function AdminAdmissionsPage() {
       
       {/* Top Stat Cards */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        {[
-          { key: "pending", label: t("pending"), value: counts.pending, cls: "text-yellow-700 bg-yellow-50 border-yellow-200 dark:text-yellow-400 dark:bg-yellow-950/30 dark:border-yellow-800/40", icon: Clock },
-          { key: "reviewing", label: t("reviewing"), value: counts.reviewing, cls: "text-blue-700 bg-blue-50 border-blue-200 dark:text-blue-400 dark:bg-blue-950/30 dark:border-blue-800/40", icon: UserCheck },
-          { key: "approved", label: t("approved"), value: counts.approved, cls: "text-green-700 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-950/30 dark:border-green-800/40", icon: CheckCircle2 },
-        ].map(s => (
-          <div key={s.key} className={`card p-4 flex items-center gap-3 border ${s.cls} cursor-pointer hover:shadow-md transition-shadow`} onClick={() => setStatusFilter(s.key)}>
-            <s.icon className="w-5 h-5" />
-            <div>
-              <div className="text-xl font-bold">{s.value}</div>
-              <div className="text-xs">{s.label}</div>
-            </div>
-          </div>
-        ))}
+        <div onClick={() => setStatusFilter("pending")} className="cursor-pointer">
+          <StatCard title={t("pending")}   value={counts.pending}   icon={Clock}         color="orange" />
+        </div>
+        <div onClick={() => setStatusFilter("reviewing")} className="cursor-pointer">
+          <StatCard title={t("reviewing")} value={counts.reviewing} icon={UserCheck}     color="blue"   />
+        </div>
+        <div onClick={() => setStatusFilter("approved")} className="cursor-pointer">
+          <StatCard title={t("approved")}  value={counts.approved}  icon={CheckCircle2}  color="green"  />
+        </div>
       </div>
 
       {/* Tabs / Filters */}

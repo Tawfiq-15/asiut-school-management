@@ -124,6 +124,9 @@ func (s *AttendanceService) Update(ctx context.Context, a *domain.Attendance) er
 func (s *AttendanceService) StudentIDFromUserID(ctx context.Context, userID string) (string, error) {
 	return s.repo.StudentIDFromUserID(ctx, userID)
 }
+func (s *AttendanceService) TeacherIDFromUserID(ctx context.Context, userID string) (string, error) {
+	return s.repo.TeacherIDFromUserID(ctx, userID)
+}
 
 // ─── Assignment Service ───────────────────────────────────────────────────────
 

@@ -1,11 +1,18 @@
 "use client";
 
 import { useState, useEffect, useRef, useId, memo, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { LucideIcon, ArrowUp, X, TrendingUp, TrendingDown, Download } from "lucide-react";
 import { useExport } from "@/hooks/useExport";
-import { CommandPalette } from "@/components/CommandPalette";
 import { Sidebar } from "@/components/Sidebar";
 import { cn } from "@/lib/utils";
+
+// CommandPalette is a hidden overlay until invoked — load it on the client after
+// the route renders so it stays out of every dashboard route's compile graph.
+const CommandPalette = dynamic(
+  () => import("@/components/CommandPalette").then((m) => m.CommandPalette),
+  { ssr: false }
+);
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 

@@ -1,9 +1,9 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { DashboardLayout, PageHeader, DataTable, Modal } from "@/components/ui";
+import { DashboardLayout, PageHeader, DataTable, Modal, StatCard } from "@/components/ui";
 import { formatDate } from "@/lib/utils";
-import { FileText, FileUp, Loader2, Eye, CheckCircle, AlertCircle, AlertTriangle } from "lucide-react";
+import { FileText, FileUp, Loader2, Eye, CheckCircle, AlertCircle, AlertTriangle, ClipboardList, Clock } from "lucide-react";
 import api from "@/lib/api";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -67,9 +67,21 @@ export default function StudentAssignmentsPage() {
     )},
   ];
 
+  const list = assignments as any[];
+  const submitted = list.filter((a) => a.submission).length;
+  const pending   = list.filter((a) => !a.submission && new Date(a.due_date) >= new Date()).length;
+  const pastDue   = list.filter((a) => !a.submission && new Date(a.due_date) < new Date()).length;
+
   return (
     <DashboardLayout role="student">
       <PageHeader title={t("assignmentsTitle")} subtitle={t("assignmentsSubtitle")} />
+
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <StatCard title="Submitted" value={submitted} icon={CheckCircle}   color="green"  />
+        <StatCard title="Pending"   value={pending}   icon={Clock}         color="orange" />
+        <StatCard title="Overdue"   value={pastDue}   icon={ClipboardList} color="red"    />
+      </div>
+
       <div className="card overflow-hidden">
         <DataTable columns={columns} data={assignments} loading={isLoading} emptyMessage={t("noAssignments")} />
       </div>

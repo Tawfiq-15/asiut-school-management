@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { DashboardLayout, PageHeader } from "@/components/ui";
 import api from "@/lib/api";
 import { useTranslations } from "next-intl";
-import * as XLSX from "xlsx";
 
 export default function TeacherMarksPage() {
   const t = useTranslations("T");
@@ -137,8 +136,12 @@ export default function TeacherMarksPage() {
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!students || students.length === 0) return toast.error("No data to export");
+
+    // Load xlsx on demand — it's a heavy library, so keep it out of the route's
+    // initial bundle / compile graph until the user actually exports.
+    const XLSX = await import("xlsx");
 
     const exportData = students.map((s: any) => {
       const m = marks[s.id] || {};

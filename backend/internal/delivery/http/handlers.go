@@ -227,6 +227,7 @@ func NewStudentHandler(svc *usecase.StudentService) *StudentHandler { return &St
 func (h *StudentHandler) List(c *gin.Context) {
 	var p domain.PaginationParams
 	c.ShouldBindQuery(&p)
+	p.Normalize()
 	result, err := h.svc.List(c.Request.Context(), p)
 	respondOrError(c, result, err)
 }
@@ -293,6 +294,7 @@ func NewTeacherHandler(svc *usecase.TeacherService) *TeacherHandler { return &Te
 func (h *TeacherHandler) List(c *gin.Context) {
 	var p domain.PaginationParams
 	c.ShouldBindQuery(&p)
+	p.Normalize()
 	result, err := h.svc.List(c.Request.Context(), p)
 	respondOrError(c, result, err)
 }
@@ -349,6 +351,7 @@ func NewParentHandler(svc *usecase.ParentService) *ParentHandler { return &Paren
 func (h *ParentHandler) List(c *gin.Context) {
 	var p domain.PaginationParams
 	c.ShouldBindQuery(&p)
+	p.Normalize()
 	result, err := h.svc.List(c.Request.Context(), p)
 	respondOrError(c, result, err)
 }

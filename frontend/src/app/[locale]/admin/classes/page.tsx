@@ -1,9 +1,9 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, School, Users, BookOpen, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, School, Users, BookOpen, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
-import { DashboardLayout, PageHeader, Modal, DataTable } from "@/components/ui";
+import { DashboardLayout, PageHeader, Modal, DataTable, StatCard } from "@/components/ui";
 import { motion } from "framer-motion";
 import api from "@/lib/api";
 import { useTranslations } from "next-intl";
@@ -17,6 +17,8 @@ export default function ClassesPage() {
   const [showSubjectsModal, setShowSubjectsModal] = useState(false);
   const [selectedClassDetails, setSelectedClassDetails] = useState<any>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [search, setSearch] = useState("");
 
   const { data: grades = [], isLoading } = useQuery({
     queryKey: ["grades"],
@@ -35,11 +37,18 @@ export default function ClassesPage() {
 
   const del = useMutation({
     mutationFn: (id: string) => api.delete(`/admin/grades/${id}`),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["grades"] }); toast.success(t("classDeleted")); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["grades"] }); toast.success(t("classDeleted")); setDeleteTarget(null); },
     onError: () => toast.error(t("operationFailed")),
   });
 
   const classLabel = (g: any) => `${g.name}${g.section ? `-${g.section}` : ""}`;
+
+  const totalStudents = (grades as any[]).reduce((s, g) => s + (g.student_count ?? 0), 0);
+  const totalCapacity = (grades as any[]).reduce((s, g) => s + (g.capacity ?? 0), 0);
+
+  const filtered = search
+    ? (grades as any[]).filter((g: any) => classLabel(g).toLowerCase().includes(search.toLowerCase()) || g.room?.toLowerCase().includes(search.toLowerCase()))
+    : grades;
 
   return (
     <DashboardLayout role="admin">
@@ -53,13 +62,28 @@ export default function ClassesPage() {
         }
       />
 
+      {/* Summary */}
+      <div className="grid grid-cols-3 gap-4 mb-5">
+        <StatCard title="Total Classes"   value={(grades as any[]).length} icon={School} color="blue"   />
+        <StatCard title="Total Students"  value={totalStudents}            icon={Users}  color="green"  />
+        <StatCard title="Total Capacity"  value={totalCapacity}            icon={School} color="purple" />
+      </div>
+
+      {/* Search */}
+      <div className="card p-4 mb-4">
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)]" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("searchClasses")} className="form-input pl-9" />
+        </div>
+      </div>
+
       {isLoading ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {[...Array(6)].map((_, i) => <div key={i} className="skeleton h-36 rounded-md" />)}
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {(grades || []).map((g: any, i: number) => {
+          {(filtered as any[] || []).map((g: any, i: number) => {
             const classSubjects = (subjects || []).filter((s: any) => s.grade_id === g.id);
             return (
               <motion.div
@@ -91,7 +115,7 @@ export default function ClassesPage() {
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); if(confirm(t("deleteConfirm"))) del.mutate(g.id); }}
+                        onClick={(e) => { e.stopPropagation(); setDeleteTarget(g); }}
                         title={t("delete")}
                         className="p-1.5 rounded-lg hover:bg-red-50 text-[var(--color-text-muted)] hover:text-red-500"
                       >
@@ -157,6 +181,20 @@ export default function ClassesPage() {
           <ClassDetailsRoster grade={selectedClassDetails} teachers={teachers} />
         )}
       </Modal>
+
+      {deleteTarget && (
+        <Modal open={true} onClose={() => setDeleteTarget(null)} title={t("deleteConfirm")}>
+          <div className="space-y-4">
+            <p className="text-sm text-[var(--color-text-muted)]">
+              Delete class <span className="font-semibold dark:text-[var(--color-dark-text)]">{classLabel(deleteTarget)}</span>? This will also remove all associated subjects.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setDeleteTarget(null)} className="btn-secondary">{t("cancel")}</button>
+              <button onClick={() => del.mutate(deleteTarget.id)} disabled={del.isPending} className="px-4 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-700 text-white">{t("delete")}</button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </DashboardLayout>
   );
 }
@@ -263,7 +301,6 @@ function ClassSubjectsManager({ gradeId, subjects, teachers, onSuccess }: ClassS
   };
 
   const deleteSubject = async (id: string) => {
-    if (!confirm(t("deleteConfirm"))) return;
     try {
       await api.delete(`/admin/subjects/${id}`);
       toast.success(t("subjectDeleted"));

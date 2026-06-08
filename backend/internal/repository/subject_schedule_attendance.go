@@ -422,7 +422,9 @@ func (r *AttendanceRepository) ListAll(ctx context.Context, p domain.PaginationP
 
 	var total int64
 	countArgs := args[:argIdx-1] // exclude LIMIT/OFFSET
-	r.db.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total)
+	if err := r.db.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total); err != nil {
+		return nil, 0, err
+	}
 	return records, total, nil
 }
 
@@ -434,6 +436,15 @@ func (r *AttendanceRepository) Update(ctx context.Context, a *domain.Attendance)
 func (r *AttendanceRepository) StudentIDFromUserID(ctx context.Context, userID string) (string, error) {
 	var id string
 	err := r.db.QueryRowContext(ctx, `SELECT id FROM students WHERE user_id = $1`, userID).Scan(&id)
+	if err != nil {
+		return "", err
+	}
+	return id, nil
+}
+
+func (r *AttendanceRepository) TeacherIDFromUserID(ctx context.Context, userID string) (string, error) {
+	var id string
+	err := r.db.QueryRowContext(ctx, `SELECT id FROM teachers WHERE user_id = $1`, userID).Scan(&id)
 	if err != nil {
 		return "", err
 	}
@@ -473,10 +484,12 @@ func (r *ParentRepository) List(ctx context.Context, p domain.PaginationParams) 
 		parents = append(parents, pa)
 	}
 	var total int64
-	r.db.QueryRowContext(ctx, `
+	if err := r.db.QueryRowContext(ctx, `
 		SELECT COUNT(*) FROM parents p JOIN users u ON u.id = p.user_id
 		WHERE p.deleted_at IS NULL AND ($1 = '' OR u.first_name ILIKE $1 OR u.last_name ILIKE $1)
-	`, "%"+p.Search+"%").Scan(&total)
+	`, "%"+p.Search+"%").Scan(&total); err != nil {
+		return nil, 0, err
+	}
 	return parents, total, nil
 }
 
